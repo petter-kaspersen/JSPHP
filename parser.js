@@ -14,7 +14,7 @@ class Parser {
     this.currentOffset = 0;
 
     this.variables = [];
-    this.functionDeclarations = [];
+    this.functions = [];
     this.calledFunctions = [];
   }
 
@@ -53,7 +53,7 @@ class Parser {
     this.currentOffset += build.length + 1;
   }
 
-  addAddCalledFunction({ name, value }) {
+  addCalledFunction({ name, value }) {
     value = value.replace("$", "");
     switch (name) {
       case "echo":
@@ -65,6 +65,73 @@ class Parser {
       default:
         break;
     }
+  }
+
+  parseFunctionArgs(args) {
+    if (args === "") return args;
+
+    const raw = args.split(",");
+
+    return {
+      raw: raw.join(","),
+      args: args.split(",").map((arg) => {
+        const fixedArg = arg.replace("$", "");
+
+        return {
+          length: fixedArg.length,
+          name: fixedArg,
+        };
+      }),
+    };
+  }
+
+  addFunction({ name, args, content }) {
+    const fixedArgs = this.parseFunctionArgs(args);
+
+    let build = `function ${name}(${fixedArgs?.raw ?? ""}) {${content}}`;
+
+    const bodyStart =
+      this.currentOffset + 12 + name.length + this.parseFunctionArgs(args);
+
+    const bodyEnd = this.currentOffset + build.length;
+
+    let localOffset = 10 + name.length;
+
+    this.functions.push({
+      type: "FunctionDeclaration",
+      start: this.currentOffset,
+      end: build.length,
+      id: {
+        type: "Identifier",
+        start: this.currentOffset + 9,
+        end: this.currentOffset + 9 + name.length,
+        name: name,
+      },
+      expression: false,
+      generator: false,
+      async: false,
+      params: fixedArgs?.args
+        ? fixedArgs.args.map((arg) => {
+            const start = localOffset;
+            const end = localOffset + arg.length - 1;
+
+            localOffset += 1;
+            return {
+              type: "Identifier",
+              start: start,
+              end: end,
+              name: arg.name.trim(),
+            };
+          })
+        : [],
+      body: {
+        type: "BlockStatement",
+        start: bodyStart,
+        end: bodyEnd,
+      },
+    });
+
+    this.currentOffset += build.length + 1;
   }
 
   consoleLog(value) {
@@ -113,37 +180,53 @@ class Parser {
   }
 
   startParse() {
-    const lines = this.rawFile.trim().split("\n");
+    let hasMatchedAll = false;
 
-    for (let line of lines) {
-      const lineType = this.getLineType(line);
+    while (!hasMatchedAll) {
+      const lineType = this.getLineType(this.rawFile);
 
       let props;
 
+      if (this.rawFile.trim() === "") {
+        hasMatchedAll = true;
+      }
+
       switch (lineType) {
         case "var":
-          props = this.getVariableDeclaration(line);
+          props = this.getVariableDeclaration(this.rawFile);
 
           this.addVariable(props);
           break;
 
         case "call_func":
-          props = this.getCalledFunction(line);
+          props = this.getCalledFunction(this.rawFile);
 
-          this.addAddCalledFunction(props);
+          this.addCalledFunction(props);
+          break;
 
+        case "func":
+          props = this.getFunctionDeclaration(this.rawFile);
+
+          this.addFunction(props);
           break;
 
         default:
-          console.log(`Unknown declaration found: ${line}`);
           break;
+      }
+      if (props?.raw) {
+        this.rawFile = this.rawFile.replace(props.raw, "").trim();
       }
     }
 
     this.AST = {
       ...this.AST,
       currentOffset: this.currentOffset,
-      body: [...this.AST.body, ...this.variables, ...this.calledFunctions],
+      body: [
+        ...this.AST.body,
+        ...this.variables,
+        ...this.calledFunctions,
+        ...this.functions,
+      ],
     };
 
     fs.writeFileSync("ast.json", JSON.stringify(this.AST));
@@ -152,6 +235,7 @@ class Parser {
   getLineType(line) {
     if (this.isVariableDeclaration(line)) return "var";
     else if (this.isCallingFunction(line)) return "call_func";
+    else if (this.isFunctionDeclaration(line)) return "func";
 
     return "";
   }
@@ -168,20 +252,49 @@ class Parser {
     return val && val.length > 0;
   }
 
+  isFunctionDeclaration(line) {
+    const val = line.match(
+      /function ([a-zA-Z0-9_]*)\s?\((.*)\)\s?{([\r\n]+)}/g
+    );
+
+    return val && val.length > 0;
+  }
+
   getVariableDeclaration(line) {
     const matches = line.matchAll(/(\$[a-zA-Z0-9_]*)( = )("(.*)";)*/g);
 
     let name = "";
-    let value = "";
+    let value;
     let type = "";
+    let raw;
 
     for (let match of matches) {
       name = match[1].replace("$", "");
       value = match[4];
-      type = "string";
+      type = typeof value;
+      raw = match[0];
     }
 
-    return { name, value, type };
+    return { name, value, type, raw };
+  }
+
+  getFunctionDeclaration(line) {
+    const matches = line.matchAll(
+      /function ([a-zA-Z0-9_]*)\s?\((.*)\)\s?{([\r\n]+)}/g
+    );
+
+    let name;
+    let args;
+    let raw;
+    let content;
+
+    let rest;
+
+    for (let match of matches) {
+      [raw, name, args, content, ...rest] = match;
+    }
+
+    return { name, args, raw, content };
   }
 
   getCalledFunction(line) {
@@ -189,12 +302,14 @@ class Parser {
 
     let name = "";
     let value = "";
+    let raw = "";
 
     for (let match of matches) {
       name = match[1];
       value = match[2];
+      raw = match[0];
     }
 
-    return { name, value };
+    return { name, value, raw };
   }
 }

@@ -32,3 +32,15 @@ $test = "Hello, world!";
 
 echo($print);
 ```
+
+#### Simple function declarators
+
+Small function declarators with empty bodies are supported (that is, the body is not parsed as a separate AST).
+
+Example:
+
+```php
+function hello_world($a, $b) {
+
+}
+```
