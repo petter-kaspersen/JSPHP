@@ -5,42 +5,44 @@ you try to use it I feel sorry for you.
 
 Enjoy.
 
+## How does it work?
+
+First the program evaluates the AST of the PHP file you pass to it. Then,
+the program traverses every children of the program,
+converting it to JS AST. Then, the program writes to the defined JS outfile.
+
+It will currently skip over any (yet) unsupported syntax.
+
+## Currently supported language features
+
+### Parse variable declarations
+
+The program can parse simple variable declarations of the following types.
+
+- string
+- boolean
+- number
+- float
 
 
-### Current supported syntax:
-
-#### Variable declaration
-
-Simple variable parsing works.
-
-Eg.
+#### Example:
 
 ```php
-$test = "Hello, world";
+<?php
+
+$x = 1337;
+$y = "1337";
+$z = false;
+$zz = 0.5;
+
+?>
 ```
 
-It currently only supports variables of type string.
+The program wil output the following JS code:
 
-#### Simple function calls
-
-Simple function calls works, the only implemented call right now is `print`, `echo` and `print_r` which at the moment all gets parsed to `console.log`.
-
-Example:
-
-```php
-$test = "Hello, world!";
-
-echo($print);
-```
-
-#### Simple function declarators
-
-Small function declarators with empty bodies are supported (that is, the body is not parsed as a separate AST).
-
-Example:
-
-```php
-function hello_world($a, $b) {
-
-}
+```js
+var x = 1337;
+var y = "1337";
+var z = false;
+var zz = 0.5;
 ```
