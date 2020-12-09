@@ -140,6 +140,9 @@ class Parser {
       case "var_dump":
         return "console.log";
 
+      case "abs":
+        return "Math.abs";
+
       default:
         return name;
     }

@@ -53,7 +53,9 @@ The program can parse basic function calls.
 
 Currently supported global functions:
 
-* console.log
+* print_r
+* var_dump
+* abs
 
 #### Example
 
@@ -61,7 +63,7 @@ Currently supported global functions:
 <?php
 
 print_r("Hello");
-var_dump(20);
+abs(10);
 
 ?>
 ```
@@ -70,7 +72,7 @@ This will output
 
 ```js
 console.log("Hello");
-console.log(20);
+Math.abs(10);
 ```
 
 Every other function will return the same function.
