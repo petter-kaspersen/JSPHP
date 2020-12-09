@@ -141,7 +141,7 @@ class Parser {
         return "console.log";
 
       default:
-        return "";
+        return name;
     }
   }
 
@@ -152,10 +152,7 @@ class Parser {
 
     const args = this.getCallStatementArguments(statement.expression.arguments);
 
-    const formattedArgs = args
-      .map((a) => a.raw)
-      .join(", ")
-      .trim();
+    const formattedArgs = args.map((a) => a.raw).join(", ");
 
     let body = `${name}(${formattedArgs});`;
 
@@ -174,18 +171,10 @@ class Parser {
           type: "MemberExpression",
           start: start,
           end: start + 11,
-          object: {
-            type: "Identifier",
-            start: start,
-            end: start + 7,
-            name: "console",
-          },
-          property: {
-            type: "Identifier",
-            start: start + 8,
-            end: start + 11,
-            name: "log",
-          },
+          type: "Identifier",
+          start: start,
+          end: start + name.length,
+          name: name,
         },
         arguments: args.map((arg) => {
           const toReturn = {
@@ -199,7 +188,6 @@ class Parser {
       },
     };
 
-    console.log(toInsert);
     this.JS_AST = {
       ...this.JS_AST,
       end: this.currentOffset + end + 1,

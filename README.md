@@ -72,3 +72,15 @@ This will output
 console.log("Hello");
 console.log(20);
 ```
+
+Every other function will return the same function.
+
+```php
+<?php
+some_other_func("test");
+?>
+```
+
+```js
+some_other_func("test");
+```
