@@ -49,6 +49,9 @@ class Parser {
       case "assign":
         this.addAssignStatement(statement);
         break;
+      case "call":
+        this.addCallStatement(statement);
+        break;
     }
   }
 
@@ -117,6 +120,86 @@ class Parser {
       ],
     };
 
+    this.JS_AST = {
+      ...this.JS_AST,
+      end: this.currentOffset + end + 1,
+      body: [...this.JS_AST.body, toInsert],
+    };
+  }
+
+  getCallStatementArguments(args) {
+    return args.map((arg) => {
+      const toReturn = this.getExpressionValue(arg);
+      return toReturn;
+    });
+  }
+
+  convertPHPStatementNameToJS(name) {
+    switch (name) {
+      case "print_r":
+      case "var_dump":
+        return "console.log";
+
+      default:
+        return "";
+    }
+  }
+
+  addCallStatement(statement) {
+    const name = this.convertPHPStatementNameToJS(
+      statement.expression.what.name
+    );
+
+    const args = this.getCallStatementArguments(statement.expression.arguments);
+
+    const formattedArgs = args
+      .map((a) => a.raw)
+      .join(", ")
+      .trim();
+
+    let body = `${name}(${formattedArgs});`;
+
+    let start = this.currentOffset;
+    let end = this.currentOffset + body.length;
+
+    const toInsert = {
+      type: "ExpressionStatement",
+      start: start,
+      end: end,
+      expression: {
+        type: "CallExpression",
+        start: start,
+        end: body.length - 1,
+        callee: {
+          type: "MemberExpression",
+          start: start,
+          end: start + 11,
+          object: {
+            type: "Identifier",
+            start: start,
+            end: start + 7,
+            name: "console",
+          },
+          property: {
+            type: "Identifier",
+            start: start + 8,
+            end: start + 11,
+            name: "log",
+          },
+        },
+        arguments: args.map((arg) => {
+          const toReturn = {
+            type: "Literal",
+            value: arg.value,
+            raw: arg.raw,
+          };
+
+          return toReturn;
+        }),
+      },
+    };
+
+    console.log(toInsert);
     this.JS_AST = {
       ...this.JS_AST,
       end: this.currentOffset + end + 1,

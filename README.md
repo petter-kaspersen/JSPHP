@@ -46,3 +46,29 @@ var y = "1337";
 var z = false;
 var zz = 0.5;
 ```
+
+### Parse simple function calls
+
+The program can parse basic function calls.
+
+Currently supported global functions:
+
+* console.log
+
+#### Example
+
+```php
+<?php
+
+print_r("Hello");
+var_dump(20);
+
+?>
+```
+
+This will output
+
+```js
+console.log("Hello");
+console.log(20);
+```
