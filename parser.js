@@ -74,6 +74,11 @@ class Parser {
         raw = val.value.toString();
         break;
 
+      case "variable":
+        value = val.name;
+        raw = val.name;
+        break;
+
       default:
         break;
     }
@@ -130,7 +135,7 @@ class Parser {
   getCallStatementArguments(args) {
     return args.map((arg) => {
       const toReturn = this.getExpressionValue(arg);
-      return toReturn;
+      return { ...toReturn, type: arg.kind };
     });
   }
 
@@ -180,8 +185,16 @@ class Parser {
           name: name,
         },
         arguments: args.map((arg) => {
+          let type = "";
+
+          if (type === "variable") {
+            type = "Identifier";
+          } else {
+            type = "Literal";
+          }
+
           const toReturn = {
-            type: "Literal",
+            type: type,
             value: arg.value,
             raw: arg.raw,
           };
